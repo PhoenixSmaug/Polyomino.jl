@@ -1,7 +1,9 @@
 using Pkg
 #Pkg.add("DataStructures");
+#Pkg.add("MatrixNetworks")
 
-using DataStructures;
+using DataStructures
+using MatrixNetworks
 
 struct Polyomino
     tiles::Set{Pair{Int64, Int64}}
@@ -76,7 +78,7 @@ function Polyomino(size::Int64, p::Float64, shuffling::Bool)
             end
 
             connected = true  # check connectivity
-            for i = 1:length(toCheck) - 1
+            for i = 1 : length(toCheck) - 1
                 if !(bfs(tiles, toCheck[i], toCheck[i + 1]))
                     connected = false
                     break
@@ -145,7 +147,7 @@ function Polyomino(size::Int64, p::Float64, shuffling::Bool)
         tiles = Set{Pair{Int64, Int64}}([0 => 0])
         neighbours = Set{Pair{Int64, Int64}}([-1 => 0, 0 => -1, 1 => 0, 0 => 1])
 
-        for i in 1:size - 1
+        for i in 1 : size - 1
             ranElem = rand(neighbours)  # choose random element from set
             push!(tiles, ranElem)
             delete!(neighbours, ranElem)
@@ -194,4 +196,193 @@ function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pa
     end
 
     return false
+end
+
+
+"""
+Maximal Number of Non-Attacking Rooks
+ - Equal to size of maximal matching in bipartite graph
+ - Algorithm for bipartite graph in https://link.springer.com/content/pdf/10.1007/s00373-020-02272-8.pdf Chapter 4
+"""
+function maxRooks(p::Polyomino)
+    minX = typemax(Int64); minY = typemax(Int64);
+    maxX = typemin(Int64); maxY = typemin(Int64);
+    for i in p.tiles
+        maxX = (i.first > maxX) ? i.first : maxX
+        maxY = (i.second > maxY) ? i.second : maxY
+        minX = (i.first < minX) ? i.first : minX
+        minY = (i.second < minY) ? i.second : minY
+    end
+
+    firstCoord = Dict{Pair{Int64, Int64}, Int64}()
+    counter = 0
+    previous = false
+    for i in minX - 1 : maxX + 1
+        for j in minY - 1 : maxY + 1
+            if (Pair(i, j) in p.tiles)
+                if (!previous) counter += 1 end
+                firstCoord[i => j] = counter
+                previous = true
+            else
+                previous = false
+            end
+        end
+    end
+
+    secondCoord = Dict{Pair{Int64, Int64}, Int64}()
+    counter = 0
+    previous = false
+    for j in minY - 1 : maxY + 1
+        for i in minX - 1 : maxX + 1
+            if (Pair(i, j) in p.tiles)
+                if (!previous) counter += 1 end
+                secondCoord[i => j] = counter
+                previous = true
+            else
+                previous = false
+            end
+        end
+    end
+
+    edgeStart = Int64[]; edgeEnd = Int64[]
+    biGraphOrder = Dict{Pair{Int64, Int64}, Pair{Int64, Int64}}()  # remember which tile corresponds to edge
+
+    for i in minX : maxX
+        for j in minY : maxY
+            if (Pair(i, j) in p.tiles)
+                push!(edgeStart, firstCoord[i => j])
+                push!(edgeEnd, secondCoord[i => j])
+                biGraphOrder[Pair(firstCoord[i => j], secondCoord[i => j])] = i => j
+            end
+        end
+    end
+
+    weights = fill(1, length(edgeStart))
+    matching = bipartite_matching(weights, edgeStart, edgeEnd)
+    matchingStart = edge_list(matching)[1]
+    matchingEnd = edge_list(matching)[2]
+
+    rooks = Pair{Int64, Int64}[]
+    for i in 1 : length(matchingStart)
+        push!(rooks, biGraphOrder[Pair(matchingStart[i], matchingEnd[i])])
+    end
+
+    return matching.cardinality, rooks
+end
+
+
+"""
+Pretty Print Max Rook Setup
+ - ASCII Art: "+" if tile has rook on it, "*" if not
+"""
+function printMaxRooks(p::Polyomino)
+    _, matching = maxRooks(p)
+
+    minX = typemax(Int64); minY = typemax(Int64);
+    maxX = typemin(Int64); maxY = typemin(Int64);
+    for i in p.tiles
+        maxX = (i.first > maxX) ? i.first : maxX
+        maxY = (i.second > maxY) ? i.second : maxY
+        minX = (i.first < minX) ? i.first : minX
+        minY = (i.second < minY) ? i.second : minY
+    end
+
+    for i in minX:maxX
+        for j in minY:maxY
+            if (Pair(i, j) in p.tiles)
+                (Pair(i, j) in matching) ? print("+") : print("*")
+            else
+                print(" ")
+            end
+        end
+        println()
+    end
+end
+
+
+"""
+Minimal Number of Guarding Non-Attacking Rooks
+ - NP complete problem
+ - Approximate with greedy algorithm by placing rook so it guards as many new tiles as possible
+"""
+function minRooks(p::Polyomino)
+    attackable = Dict{Pair{Int64, Int64}, Set{Pair{Int64, Int64}}}()
+    rooks = Pair{Int64, Int64}[]
+
+    for i in p.tiles
+        attackable[i] = Set{Pair{Int64, Int64}}()
+    end
+
+    while (!isempty(attackable))
+        for (key, value) in attackable
+            attackable[key] = Set{Pair{Int64, Int64}}()
+            t = 1
+            while (Pair(key.first - t, key.second) in p.tiles)  # up
+                push!(attackable[key], Pair(key.first - t, key.second))
+                t += 1
+            end
+            t = 1
+            while (Pair(key.first, key.second - t) in p.tiles)  # left
+                push!(attackable[key], Pair(key.first, key.second - t))
+                t += 1
+            end
+            t = 1
+            while (Pair(key.first + t, key.second) in p.tiles)  # down
+                push!(attackable[key], Pair(key.first + t, key.second))
+                t += 1
+            end
+            t = 1
+            while (Pair(key.first, key.second + t) in p.tiles)  # right
+                push!(attackable[key], Pair(key.first, key.second + t))
+                t += 1
+            end
+        end
+
+        max = 0; maxEdge = Pair(0, 0)
+
+        for (key, value) in attackable  # find edge with most neighbours
+            if (length(value) >= max)
+                max = length(value)
+                maxEdge = key
+            end
+        end
+
+        for i in attackable[maxEdge]
+            delete!(attackable, i)
+        end
+        delete!(attackable, maxEdge)
+
+        push!(rooks, maxEdge)
+    end
+
+    return length(rooks), rooks
+end
+
+
+"""
+Pretty Print Min Rook Setup
+ - ASCII Art: "+" if tile has rook on it, "*" if not
+"""
+function printMinRooks(p::Polyomino)
+    _, matching = minRooks(p)
+
+    minX = typemax(Int64); minY = typemax(Int64);
+    maxX = typemin(Int64); maxY = typemin(Int64);
+    for i in p.tiles
+        maxX = (i.first > maxX) ? i.first : maxX
+        maxY = (i.second > maxY) ? i.second : maxY
+        minX = (i.first < minX) ? i.first : minX
+        minY = (i.second < minY) ? i.second : minY
+    end
+
+    for i in minX:maxX
+        for j in minY:maxY
+            if (Pair(i, j) in p.tiles)
+                (Pair(i, j) in matching) ? print("+") : print("*")
+            else
+                print(" ")
+            end
+        end
+        println()
+    end
 end
