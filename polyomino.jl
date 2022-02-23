@@ -1,9 +1,11 @@
 using Pkg
 #Pkg.add("DataStructures");
 #Pkg.add("MatrixNetworks")
+#Pkg.add("Combinatorics")
 
 using DataStructures
 using MatrixNetworks
+using Combinatorics
 
 struct Polyomino
     tiles::Set{Pair{Int64, Int64}}
@@ -303,59 +305,81 @@ end
 """
 Minimal Number of Guarding Non-Attacking Rooks
  - NP complete problem
- - Approximate with greedy algorithm by placing rook so it guards as many new tiles as possible
+ - Check solutions encoded as bitsets
+ - Runtime size * 2^size, try big polyominos with caution
+ - Recommendations: Eden Model (< 70), Shuffeling p = 0.6 (< 45)
 """
 function minRooks(p::Polyomino)
-    attackable = Dict{Pair{Int64, Int64}, Set{Pair{Int64, Int64}}}()
-    rooks = Pair{Int64, Int64}[]
+    if (length(p.tiles) > 127)
+        error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
+    end
 
+    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate rooks
+    tileIdRev = Pair{Int128, Int128}[]
+    t = 1
     for i in p.tiles
-        attackable[i] = Set{Pair{Int64, Int64}}()
+        tileId[i] = t
+        push!(tileIdRev, i)
+        t += 1
     end
 
-    while (!isempty(attackable))
-        for (key, value) in attackable
-            attackable[key] = Set{Pair{Int64, Int64}}()
-            t = 1
-            while (Pair(key.first - t, key.second) in p.tiles)  # up
-                push!(attackable[key], Pair(key.first - t, key.second))
-                t += 1
-            end
-            t = 1
-            while (Pair(key.first, key.second - t) in p.tiles)  # left
-                push!(attackable[key], Pair(key.first, key.second - t))
-                t += 1
-            end
-            t = 1
-            while (Pair(key.first + t, key.second) in p.tiles)  # down
-                push!(attackable[key], Pair(key.first + t, key.second))
-                t += 1
-            end
-            t = 1
-            while (Pair(key.first, key.second + t) in p.tiles)  # right
-                push!(attackable[key], Pair(key.first, key.second + t))
-                t += 1
-            end
+    # convert situation to bitsets with Int64
+    # - bitset[idA] -> If tile with tileId idB can be attaced from idA, turn (idB - 1) bit on
+    bitsets = fill(0, length(p.tiles))
+    for (key, value) in tileId
+        bitsets[value] = bitsets[value] | (1 << (value - 1))
+
+        t = 1
+        while (Pair(key.first - t, key.second) in p.tiles)  # up
+            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first - t, key.second)] - 1))
+            t += 1
         end
-
-        max = 0; maxEdge = Pair(0, 0)
-
-        for (key, value) in attackable  # find edge with most neighbours
-            if (length(value) >= max)
-                max = length(value)
-                maxEdge = key
-            end
+        t = 1
+        while (Pair(key.first, key.second - t) in p.tiles)  # left
+            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first, key.second - t)] - 1))
+            t += 1
         end
-
-        for i in attackable[maxEdge]
-            delete!(attackable, i)
+        t = 1
+        while (Pair(key.first + t, key.second) in p.tiles)  # down
+            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first + t, key.second)] - 1))
+            t += 1
         end
-        delete!(attackable, maxEdge)
-
-        push!(rooks, maxEdge)
+        t = 1
+        while (Pair(key.first, key.second + t) in p.tiles)  # right
+            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first, key.second + t)] - 1))
+            t += 1
+        end
     end
 
-    return length(rooks), rooks
+    bitsetOrder = Dict{Int128, Int128}()
+    t = 1  # remember which bitset is which tile
+    for i in bitsets
+        bitsetOrder[i] = t
+        t += 1
+    end
+
+    max, maxSetup = maxRooks(p)  # the paper proves maxRooks/2 <= minRooks <= maxRooks
+
+    guarded = (1 << length(p.tiles)) - 1
+    for i = ceil(Int, max / 2) : max - 1
+        for j in combinations(bitsets, i)  # loop trough all possibilities to place i rooks
+            sum = 0
+            for h in j  # collect all tiles that are guarded by current rook placement
+                sum = sum | h
+            end
+
+            if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
+                rooks = Pair{Int64, Int64}[]
+                for h in j
+                    push!(rooks, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+                end
+
+                return i, rooks
+            end
+        end
+    end
+
+    return max, maxSetup
 end
 
 
@@ -386,6 +410,7 @@ function printMinRooks(p::Polyomino)
         println()
     end
 end
+
 
 """
 Convert to Minimal Line Cover (MLC)
@@ -520,7 +545,7 @@ function minimalLineCover(p::Polyomino)
                     end
                     t += 1
                 end
-                
+
                 row = Pair{Int64, Int64}[]; column = Pair{Int64, Int64}[];  # combine parts into vertical and horizontal line
                 for j in length(left) : -1 : 1
                     push!(row, left[j])
