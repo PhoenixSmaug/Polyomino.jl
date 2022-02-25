@@ -358,6 +358,8 @@ function minRooks(p::Polyomino)
         t += 1
     end
 
+    bitsets = unique(bitsets)  # filter out irrelevant rooks
+
     max, maxSetup = maxRooks(p)  # the paper proves maxRooks/2 <= minRooks <= maxRooks
 
     guarded = (1 << length(p.tiles)) - 1
@@ -369,7 +371,7 @@ function minRooks(p::Polyomino)
             end
 
             if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
-                rooks = Pair{Int128, Int128}[]
+                rooks = Pair{Int64, Int64}[]
                 for h in j
                     push!(rooks, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
                 end
