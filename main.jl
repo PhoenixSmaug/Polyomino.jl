@@ -11,15 +11,14 @@ show(Polyomino(30, 0.8, true))
 println("Eden Model:")
 show(Polyomino(30, 0.0, false))
 
-
 println("<Polyomino Analysis>")
 polyomino = Polyomino(30, 0.6, true)
 
-println("Minimal Rook Setup")
+println("Minimal Rook Setup:")
 printMinRooks(polyomino)
 
-println("Maximal Rook Setup")
+println("Maximal Rook Setup:")
 printMaxRooks(polyomino)
 
-println("Minimal Line Cover")
+println("Minimal Line Cover:")
 printMinLineCover(polyomino)

@@ -305,9 +305,9 @@ end
 """
 Minimal Number of Guarding Non-Attacking Rooks
  - NP complete problem
- - Check solutions encoded as bitsets
+ - Check solutions encoded as bitset
  - Runtime size * 2^size, try big polyominos with caution
- - Recommendations: Eden Model (< 70), Shuffeling p = 0.6 (< 45)
+ - Recommendations: Eden Model (<= 70), Shuffeling p = 0.6 (<= 50)
 """
 function minRooks(p::Polyomino)
     if (length(p.tiles) > 127)
@@ -323,48 +323,63 @@ function minRooks(p::Polyomino)
         t += 1
     end
 
-    # convert situation to bitsets with Int64
-    # - bitset[idA] -> If tile with tileId idB can be attaced from idA, turn (idB - 1) bit on
-    bitsets = fill(0, length(p.tiles))
+    # convert situation to bitset with Int64, if tile with tileId idB can be attaced from idA, turn (idB - 1) bit on
+    bitset = fill(0, length(p.tiles))
     for (key, value) in tileId
-        bitsets[value] = bitsets[value] | (1 << (value - 1))
+        bitset[value] = bitset[value] | (1 << (value - 1))
 
         t = 1
         while (Pair(key.first - t, key.second) in p.tiles)  # up
-            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first - t, key.second)] - 1))
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first - t, key.second)] - 1))
             t += 1
         end
         t = 1
         while (Pair(key.first, key.second - t) in p.tiles)  # left
-            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first, key.second - t)] - 1))
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second - t)] - 1))
             t += 1
         end
         t = 1
         while (Pair(key.first + t, key.second) in p.tiles)  # down
-            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first + t, key.second)] - 1))
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first + t, key.second)] - 1))
             t += 1
         end
         t = 1
         while (Pair(key.first, key.second + t) in p.tiles)  # right
-            bitsets[value] = bitsets[value] | (1 << (tileId[Pair(key.first, key.second + t)] - 1))
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second + t)] - 1))
             t += 1
         end
     end
 
     bitsetOrder = Dict{Int128, Int128}()
     t = 1  # remember which bitset is which tile
-    for i in bitsets
+    for i in bitset
         bitsetOrder[i] = t
         t += 1
     end
 
-    bitsets = unique(bitsets)  # filter out irrelevant rooks
+    bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant rooks
+    bitsetCollectorCopy = copy(bitsetCollector)
+
+    for i in bitsetCollectorCopy
+        for j in bitsetCollectorCopy
+            if (i != j)
+                if (j == j | i)
+                    delete!(bitsetCollector, i)  # if another tile guards at least every tile the first tile guards
+                end
+            end
+        end
+    end
+
+    empty!(bitset)
+    for i in bitsetCollector
+        push!(bitset, i)
+    end
 
     max, maxSetup = maxRooks(p)  # the paper proves maxRooks/2 <= minRooks <= maxRooks
 
     guarded = (1 << length(p.tiles)) - 1
     for i = ceil(Int, max / 2) : max - 1
-        for j in combinations(bitsets, i)  # loop trough all possibilities to place i rooks
+        for j in combinations(bitset, i)  # loop trough all possibilities to place i rooks
             sum = 0
             for h in j  # collect all tiles that are guarded by current rook placement
                 sum = sum | h
