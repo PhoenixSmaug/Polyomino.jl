@@ -357,6 +357,8 @@ function minRooks(p::Polyomino)
         t += 1
     end
 
+    bitset = unique(bitset)  # reduce symmetrical rooks
+
     bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant rooks
     bitsetCollectorCopy = copy(bitsetCollector)
 
