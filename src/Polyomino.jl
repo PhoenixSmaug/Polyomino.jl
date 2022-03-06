@@ -1,13 +1,10 @@
-using Pkg
-#Pkg.add("DataStructures");
-#Pkg.add("MatrixNetworks")
-#Pkg.add("Combinatorics")
+module Polyomino
 
 using DataStructures
 using MatrixNetworks
 using Combinatorics
 
-struct Polyomino
+struct Poly
     tiles::Set{Pair{Int64, Int64}}
 end
 
@@ -16,7 +13,7 @@ end
 Pretty Print Polyomino
  - ASCII Art: " " if tile is not in polyomino, "*" if tile is in polyomino
 """
-Base.show(io::IO, x::Polyomino) = begin
+Base.show(io::IO, x::Poly) = begin
     minX = typemax(Int64); minY = typemax(Int64);
     maxX = typemin(Int64); maxY = typemin(Int64);
     for i in x.tiles
@@ -42,7 +39,7 @@ Polyomino Generation
  - Verify polyomino stays connected after shuffle with breath first search
  - Without suffling simple eden model is used
 """
-function Polyomino(size::Int64, p::Float64, shuffling::Bool)
+function Poly(size::Int64, p::Float64, shuffling::Bool)
     if shuffling
         tiles = Set{Pair{Int64, Int64}}()
         neighbours = Set{Pair{Int64, Int64}}([0 => 0, 0 => size + 1])
@@ -161,14 +158,14 @@ function Polyomino(size::Int64, p::Float64, shuffling::Bool)
         end
     end
 
-    Polyomino(tiles)
+    Poly(tiles)
 end
 
 
 """
 Breadth first search
 """
-function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
+@inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
     q = Queue{Pair{Int64, Int64}}()
     done = Set{Pair{Int64, Int64}}()
     enqueue!(q, start); push!(done, start)
@@ -206,7 +203,7 @@ Maximal Number of Non-Attacking Rooks
  - Equal to size of maximal matching in bipartite graph
  - Algorithm for bipartite graph in https://link.springer.com/content/pdf/10.1007/s00373-020-02272-8.pdf Chapter 4
 """
-function maxRooks(p::Polyomino)
+function maxRooks(p::Poly)
     minX = typemax(Int64); minY = typemax(Int64);
     maxX = typemin(Int64); maxY = typemin(Int64);
     for i in p.tiles
@@ -277,7 +274,7 @@ end
 Pretty Print Max Rook Setup
  - ASCII Art: "+" if tile has rook on it, "*" if not
 """
-function printMaxRooks(p::Polyomino)
+function printMaxRooks(p::Poly)
     _, rooks = maxRooks(p)
 
     minX = typemax(Int64); minY = typemax(Int64);
@@ -309,7 +306,7 @@ Minimal Number of Guarding Non-Attacking Rooks
  - Runtime size * 2^size, try big polyominos with caution
  - Recommendations: Eden Model (<= 70), Shuffeling p = 0.6 (<= 50)
 """
-function minRooks(p::Polyomino)
+function minRooks(p::Poly)
     if (length(p.tiles) > 127)
         error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
     end
@@ -384,7 +381,7 @@ function minRooks(p::Polyomino)
         for j in combinations(bitset, i)  # loop trough all possibilities to place i rooks
             sum = 0
             for h in j  # collect all tiles that are guarded by current rook placement
-                sum = sum | h
+                sum |= h
             end
 
             if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
@@ -406,7 +403,7 @@ end
 Pretty Print Min Rook Setup
  - ASCII Art: "+" if tile has rook on it, "*" if not
 """
-function printMinRooks(p::Polyomino)
+function printMinRooks(p::Poly)
     _, rooks = minRooks(p)
 
     minX = typemax(Int64); minY = typemax(Int64);
@@ -438,7 +435,7 @@ Convert to Minimal Line Cover (MLC)
  - Add All Lines which have tiles for which they are the only lines to the MLC, Repeat last step
  - If all polyomino tiles are part of two lines, for one random rook add horizontal line to MLC, Repeat until no rooks left
 """
-function minimalLineCover(p::Polyomino)
+function minimalLineCover(p::Poly)
     _, rooksVec = maxRooks(p)
     rooks = Set(rooksVec)
     minLineCover = Set{Array{Pair{Int64, Int64}}}()
@@ -607,7 +604,7 @@ end
 Pretty Print Minimal Line Cover
  - ASCII Art: "-" if tile is part of horizontal line, "|" if tile is part of vertical line, "+" if both
 """
-function printMinLineCover(p::Polyomino)
+function printMinLineCover(p::Poly)
     minLineCover = minimalLineCover(p)
 
     minX = typemax(Int64); minY = typemax(Int64);
@@ -650,3 +647,34 @@ function printMinLineCover(p::Polyomino)
         println()
     end
 end
+
+
+"""
+Functionality Demo
+"""
+function demo()
+    println("<Polyomino Generation (n = 30)>")
+
+    println("Shuffling (p = 0):")
+    show(Poly(30, 0.0, true))
+
+    println("Shuffling (p = 0.8):")
+    show(Poly(30, 0.8, true))
+
+    println("Eden Model:")
+    show(Poly(30, 0.0, false))
+
+    println("<Polyomino Analysis>")
+    polyomino = Poly(30, 0.6, true)
+
+    println("Minimal Rook Setup:")
+    printMinRooks(polyomino)
+
+    println("Maximal Rook Setup:")
+    printMaxRooks(polyomino)
+
+    println("Minimal Line Cover:")
+    printMinLineCover(polyomino)
+end
+
+end # module
