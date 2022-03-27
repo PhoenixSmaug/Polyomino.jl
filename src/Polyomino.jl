@@ -4,36 +4,46 @@ using DataStructures
 using MatrixNetworks
 using Combinatorics
 
+"""
+Functionality Demo
+"""
+function demo()
+    println("<Polyomino Generation (n = 30)>")
+
+    println("Shuffling (p = 0):")
+    show(Poly(30, 0.0, true))
+
+    println("Shuffling (p = 0.8):")
+    show(Poly(30, 0.8, true))
+
+    println("Eden Model:")
+    show(Poly(30, 0.0, false))
+
+    println("<Polyomino Analysis>")
+    polyomino = Poly(30, 0.6, true)
+
+    println("Minimal Rook Setup:")
+    printMinRooks(polyomino)
+
+    println("Maximal Rook Setup:")
+    printMaxRooks(polyomino)
+
+    println("Minimal Line Cover:")
+    printMinLineCover(polyomino)
+end
+
+
+"""
+<< Polyomino definition and generation >>
+"""
+
 struct Poly
     tiles::Set{Pair{Int64, Int64}}
 end
 
 
 """
-Pretty Print Polyomino
- - ASCII Art: " " if tile is not in polyomino, "*" if tile is in polyomino
-"""
-Base.show(io::IO, x::Poly) = begin
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in x.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
-    end
-
-    for i in minX:maxX
-        for j in minY:maxY
-            (Pair(i, j) in x.tiles) ? print(io, "*") : print(io, " ")
-        end
-        println()
-    end
-end
-
-
-"""
-Polyomino Generation
+Polyomino generation
  - Shuffling algorithm for uniformly distributed polyominoes after size^3 successful shuffles
  - Probability p with perculation model, higher p creates more compact polyominoes
  - Verify polyomino stays connected after shuffle with breath first search
@@ -163,39 +173,8 @@ end
 
 
 """
-Breadth first search
+<< Algorithms >>
 """
-@inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
-    q = Queue{Pair{Int64, Int64}}()
-    done = Set{Pair{Int64, Int64}}()
-    enqueue!(q, start); push!(done, start)
-
-    while (!isempty(q))
-        tile = dequeue!(q)
-        if (tile == goal)
-            return true
-        end
-
-        if ((Pair(tile.first - 1, tile.second) in tiles) && !(Pair(tile.first - 1, tile.second) in done))  # above
-            enqueue!(q, Pair(tile.first - 1, tile.second))
-            push!(done, Pair(tile.first - 1, tile.second))
-        end
-        if ((Pair(tile.first, tile.second - 1) in tiles) && !(Pair(tile.first, tile.second - 1) in done))  # left
-            enqueue!(q, Pair(tile.first, tile.second - 1))
-            push!(done, Pair(tile.first, tile.second - 1))
-        end
-        if ((Pair(tile.first + 1, tile.second) in tiles) && !(Pair(tile.first + 1, tile.second) in done))  # below
-            enqueue!(q, Pair(tile.first + 1, tile.second))
-            push!(done, Pair(tile.first + 1, tile.second))
-        end
-        if ((Pair(tile.first, tile.second + 1) in tiles) && !(Pair(tile.first, tile.second + 1) in done))  # right
-            enqueue!(q, Pair(tile.first, tile.second + 1))
-            push!(done, Pair(tile.first, tile.second + 1))
-        end
-    end
-
-    return false
-end
 
 
 """
@@ -204,14 +183,7 @@ Maximal Number of Non-Attacking Rooks
  - Algorithm for bipartite graph in https://link.springer.com/content/pdf/10.1007/s00373-020-02272-8.pdf Chapter 4
 """
 function maxRooks(p::Poly)
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in p.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
-    end
+    minX, maxX, minY, maxY =  dimensionPoly(p)
 
     firstCoord = Dict{Pair{Int64, Int64}, Int64}()
     counter = 0
@@ -271,35 +243,6 @@ end
 
 
 """
-Pretty Print Max Rook Setup
- - ASCII Art: "+" if tile has rook on it, "*" if not
-"""
-function printMaxRooks(p::Poly)
-    _, rooks = maxRooks(p)
-
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in p.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
-    end
-
-    for i in minX:maxX
-        for j in minY:maxY
-            if (Pair(i, j) in p.tiles)
-                (Pair(i, j) in rooks) ? print("+") : print("*")
-            else
-                print(" ")
-            end
-        end
-        println()
-    end
-end
-
-
-"""
 Minimal Number of Guarding Non-Attacking Rooks
  - NP complete problem
  - Check solutions encoded as bitset
@@ -320,7 +263,7 @@ function minRooks(p::Poly)
         t += 1
     end
 
-    # convert situation to bitset with Int64, if tile with tileId idB can be attaced from idA, turn (idB - 1) bit on
+    # convert situation to bitset with Int64, if tile with tileId idB can be attacked from idA, turn (idB - 1) bit on
     bitset = fill(0, length(p.tiles))
     for (key, value) in tileId
         bitset[value] = bitset[value] | (1 << (value - 1))
@@ -400,30 +343,117 @@ end
 
 
 """
-Pretty Print Min Rook Setup
- - ASCII Art: "+" if tile has rook on it, "*" if not
+Minimal Number of Guarding Non-Attacking Queens
+ - NP complete problem
+ - Check solutions encoded as bitset
+ - Runtime size * 2^size, try big polyominos with caution
+ - Recommendations: Eden Model (<= 80), Shuffeling p = 0.6 (<= 60)
 """
-function printMinRooks(p::Poly)
-    _, rooks = minRooks(p)
-
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in p.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
+function minQueens(p::Poly)
+    if (length(p.tiles) > 127)
+        error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
     end
 
-    for i in minX:maxX
-        for j in minY:maxY
-            if (Pair(i, j) in p.tiles)
-                (Pair(i, j) in rooks) ? print("+") : print("*")
-            else
-                print(" ")
+    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate queens
+    tileIdRev = Pair{Int128, Int128}[]
+    t = 1
+    for i in p.tiles
+        tileId[i] = t
+        push!(tileIdRev, i)
+        t += 1
+    end
+
+    # convert situation to bitset with Int64, if tile with tileId idB can be attacked from idA, turn (idB - 1) bit on
+    bitset = fill(0, length(p.tiles))
+    for (key, value) in tileId
+        bitset[value] = bitset[value] | (1 << (value - 1))
+
+        t = 1
+        while (Pair(key.first - t, key.second) in p.tiles)  # up
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first - t, key.second)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first - t, key.second - t) in p.tiles)  # up left
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first - t, key.second - t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first, key.second - t) in p.tiles)  # left
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second - t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first + t, key.second - t) in p.tiles)  # down left
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first + t, key.second - t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first + t, key.second) in p.tiles)  # down
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first + t, key.second)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first + t, key.second + t) in p.tiles)  # down right
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first + t, key.second + t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first, key.second + t) in p.tiles)  # right
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second + t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first - t, key.second + t) in p.tiles)  # up right
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first - t, key.second + t)] - 1))
+            t += 1
+        end
+    end
+
+    bitsetOrder = Dict{Int128, Int128}()
+    t = 1  # remember which bitset is which tile
+    for i in bitset
+        bitsetOrder[i] = t
+        t += 1
+    end
+
+    bitset = unique(bitset)  # reduce symmetrical queens
+
+    bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant queens
+    bitsetCollectorCopy = copy(bitsetCollector)
+
+    for i in bitsetCollectorCopy
+        for j in bitsetCollectorCopy
+            if (i != j)
+                if (j == j | i)
+                    delete!(bitsetCollector, i)  # if another tile guards at least every tile the first tile guards
+                end
             end
         end
-        println()
+    end
+
+    empty!(bitset)
+    for i in bitsetCollector
+        push!(bitset, i)
+    end
+
+    guarded = (1 << length(p.tiles)) - 1
+    for i = 1 : length(p.tiles)
+        for j in combinations(bitset, i)  # loop trough all possibilities to place i queens
+            sum = 0
+            for h in j  # collect all tiles that are guarded by current queen placement
+                sum |= h
+            end
+
+            if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
+                queens = Pair{Int64, Int64}[]
+                for h in j
+                    push!(queens, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+                end
+
+                return i, queens
+            end
+        end
     end
 end
 
@@ -435,7 +465,7 @@ Convert to Minimal Line Cover (MLC)
  - Add All Lines which have tiles for which they are the only lines to the MLC, Repeat last step
  - If all polyomino tiles are part of two lines, for one random rook add horizontal line to MLC, Repeat until no rooks left
 """
-function minimalLineCover(p::Poly)
+function minLineCover(p::Poly)
     _, rooksVec = maxRooks(p)
     rooks = Set(rooksVec)
     minLineCover = Set{Array{Pair{Int64, Int64}}}()
@@ -601,20 +631,96 @@ end
 
 
 """
+<< Pretty print >>
+"""
+
+
+"""
+Pretty print polyomino
+"""
+Base.show(io::IO, x::Poly) = begin
+    minX, maxX, minY, maxY =  dimensionPoly(x)
+
+    for i in minX:maxX
+        for j in minY:maxY
+            (Pair(i, j) in x.tiles) ? print(io, "*") : print(io, " ")
+        end
+        println()
+    end
+end
+
+
+"""
+Pretty Print Max Rook Setup
+"""
+function printMaxRooks(p::Poly)
+    _, rooks = maxRooks(p)
+
+    minX, maxX, minY, maxY =  dimensionPoly(p)
+
+    for i in minX:maxX
+        for j in minY:maxY
+            if (Pair(i, j) in p.tiles)
+                (Pair(i, j) in rooks) ? print("+") : print("*")
+            else
+                print(" ")
+            end
+        end
+        println()
+    end
+end
+
+
+"""
+Pretty Print Min Rook Setup
+"""
+function printMinRooks(p::Poly)
+    _, rooks = minRooks(p)
+
+    minX, maxX, minY, maxY =  dimensionPoly(p)
+
+    for i in minX:maxX
+        for j in minY:maxY
+            if (Pair(i, j) in p.tiles)
+                (Pair(i, j) in rooks) ? print("+") : print("*")
+            else
+                print(" ")
+            end
+        end
+        println()
+    end
+end
+
+
+"""
+Pretty Print Min Queen Setup
+"""
+function printMinQueens(p::Poly)
+    _, queens = minQueens(p)
+
+    minX, maxX, minY, maxY =  dimensionPoly(p)
+
+    for i in minX:maxX
+        for j in minY:maxY
+            if (Pair(i, j) in p.tiles)
+                (Pair(i, j) in queens) ? print("+") : print("*")
+            else
+                print(" ")
+            end
+        end
+        println()
+    end
+end
+
+
+"""
 Pretty Print Minimal Line Cover
- - ASCII Art: "-" if tile is part of horizontal line, "|" if tile is part of vertical line, "+" if both
+ - "-" if tile is part of horizontal line, "|" if tile is part of vertical line, "+" if both
 """
 function printMinLineCover(p::Poly)
-    minLineCover = minimalLineCover(p)
+    minLineCover = minLineCover(p)
 
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in p.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
-    end
+    minX, maxX, minY, maxY =  dimensionPoly(p)
 
     for i in minX:maxX
         for j in minY:maxY
@@ -648,33 +754,162 @@ function printMinLineCover(p::Poly)
     end
 end
 
+"""
+<< Game functions >>
+"""
+
 
 """
-Functionality Demo
+Format Polyomino for the game
+- Verify Polyomino fits in 32 x 18 grid
+- Translate to (0, 0) as (minX, minY)
 """
-function demo()
-    println("<Polyomino Generation (n = 30)>")
+function formatPoly(p::Poly)
+    minX, maxX, minY, maxY =  dimensionPoly(p)
 
-    println("Shuffling (p = 0):")
-    show(Poly(30, 0.0, true))
+    tiles = copy(p.tiles)
+    empty!(p.tiles)
+    for i in tiles
+        push!(p.tiles, Pair(i.first - minX, i.second - minY))
+    end
 
-    println("Shuffling (p = 0.8):")
-    show(Poly(30, 0.8, true))
-
-    println("Eden Model:")
-    show(Poly(30, 0.0, false))
-
-    println("<Polyomino Analysis>")
-    polyomino = Poly(30, 0.6, true)
-
-    println("Minimal Rook Setup:")
-    printMinRooks(polyomino)
-
-    println("Maximal Rook Setup:")
-    printMaxRooks(polyomino)
-
-    println("Minimal Line Cover:")
-    printMinLineCover(polyomino)
+    return (maxX - minX < 17) && (maxY - minY < 31)
 end
 
-end # module
+
+"""
+Remove Tiles guarded by rook on selected position
+"""
+function placeRook(p::Poly, x::Int64, y::Int64)
+    delete!(p.tiles, Pair(x, y))
+
+    t = 1  # up
+    while (Pair(x - t, y) in p.tiles)
+        delete!(p.tiles, Pair(x - t, y))
+        t += 1
+    end
+    t = 1  # left
+    while (Pair(x, y - t) in p.tiles)
+        delete!(p.tiles, Pair(x, y - t))
+        t += 1
+    end
+    t = 1  # down
+    while (Pair(x + t, y) in p.tiles)
+        delete!(p.tiles, Pair(x + t, y))
+        t += 1
+    end
+    t = 1  # right
+    while (Pair(x, y + t) in p.tiles)
+        delete!(p.tiles, Pair(x, y + t))
+        t += 1
+    end
+end
+
+
+"""
+Remove Tiles guarded by queen on selected position
+"""
+function placeQueen(p::Poly, x::Int64, y::Int64)
+    delete!(p.tiles, Pair(x, y))
+
+    t = 1  # up
+    while (Pair(x - t, y) in p.tiles)
+        delete!(p.tiles, Pair(x - t, y))
+        t += 1
+    end
+    t = 1  # up left
+    while (Pair(x - t, y - t) in p.tiles)
+        delete!(p.tiles, Pair(x - t, y - t))
+        t += 1
+    end
+    t = 1  # left
+    while (Pair(x, y - t) in p.tiles)
+        delete!(p.tiles, Pair(x, y - t))
+        t += 1
+    end
+    t = 1  # down left
+    while (Pair(x + t, y - t) in p.tiles)
+        delete!(p.tiles, Pair(x + t, y - t))
+        t += 1
+    end
+    t = 1  # down
+    while (Pair(x + t, y) in p.tiles)
+        delete!(p.tiles, Pair(x + t, y))
+        t += 1
+    end
+    t = 1  # down right
+    while (Pair(x + t, y + t) in p.tiles)
+        delete!(p.tiles, Pair(x + t, y + t))
+        t += 1
+    end
+    t = 1  # right
+    while (Pair(x, y + t) in p.tiles)
+        delete!(p.tiles, Pair(x, y + t))
+        t += 1
+    end
+    t = 1  # up right
+    while (Pair(x - t, y + t) in p.tiles)
+        delete!(p.tiles, Pair(x - t, y + t))
+        t += 1
+    end
+end
+
+
+"""
+<< Help functions >>
+"""
+
+
+"""
+Polyomino dimensions
+"""
+@inline function dimensionPoly(p::Poly)
+    minX = typemax(Int64); minY = typemax(Int64);
+    maxX = typemin(Int64); maxY = typemin(Int64);
+    for i in p.tiles
+        maxX = (i.first > maxX) ? i.first : maxX
+        maxY = (i.second > maxY) ? i.second : maxY
+        minX = (i.first < minX) ? i.first : minX
+        minY = (i.second < minY) ? i.second : minY
+    end
+
+    return minX, maxX, minY, maxY
+end
+
+
+"""
+Breadth first search
+"""
+@inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
+    q = Queue{Pair{Int64, Int64}}()
+    done = Set{Pair{Int64, Int64}}()
+    enqueue!(q, start); push!(done, start)
+
+    while (!isempty(q))
+        tile = dequeue!(q)
+        if (tile == goal)
+            return true
+        end
+
+        if ((Pair(tile.first - 1, tile.second) in tiles) && !(Pair(tile.first - 1, tile.second) in done))  # above
+            enqueue!(q, Pair(tile.first - 1, tile.second))
+            push!(done, Pair(tile.first - 1, tile.second))
+        end
+        if ((Pair(tile.first, tile.second - 1) in tiles) && !(Pair(tile.first, tile.second - 1) in done))  # left
+            enqueue!(q, Pair(tile.first, tile.second - 1))
+            push!(done, Pair(tile.first, tile.second - 1))
+        end
+        if ((Pair(tile.first + 1, tile.second) in tiles) && !(Pair(tile.first + 1, tile.second) in done))  # below
+            enqueue!(q, Pair(tile.first + 1, tile.second))
+            push!(done, Pair(tile.first + 1, tile.second))
+        end
+        if ((Pair(tile.first, tile.second + 1) in tiles) && !(Pair(tile.first, tile.second + 1) in done))  # right
+            enqueue!(q, Pair(tile.first, tile.second + 1))
+            push!(done, Pair(tile.first, tile.second + 1))
+        end
+    end
+
+    return false
+end
+
+end #module
