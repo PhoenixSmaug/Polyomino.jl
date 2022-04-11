@@ -246,15 +246,14 @@ end
 Minimal Number of Guarding Non-Attacking Rooks
  - NP complete problem
  - Check solutions encoded as bitset
- - Runtime size * 2^size, try big polyominos with caution
- - Recommendations: Eden Model (<= 70), Shuffeling p = 0.6 (<= 50)
+ - Worst case runtime size * 2^size, try big polyominos with caution
 """
 function minRooks(p::Poly)
     if (length(p.tiles) > 127)
         error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
     end
 
-    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate rooks
+    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate tiles
     tileIdRev = Pair{Int128, Int128}[]
     t = 1
     for i in p.tiles
@@ -263,7 +262,7 @@ function minRooks(p::Poly)
         t += 1
     end
 
-    # convert situation to bitset with Int64, if tile with tileId idB can be attacked from idA, turn (idB - 1) bit on
+    # convert situation to bitset with Int128, if tile with tileId idB can be attacked from idA, turn (idB - 1) bit on
     bitset = fill(0, length(p.tiles))
     for (key, value) in tileId
         bitset[value] = bitset[value] | (1 << (value - 1))
@@ -297,9 +296,9 @@ function minRooks(p::Poly)
         t += 1
     end
 
-    bitset = unique(bitset)  # reduce symmetrical rooks
+    bitsetMin = unique(bitset)  # reduce symmetrical rooks
 
-    bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant rooks
+    bitsetCollector = Set{Int64}(bitsetMin)  # filter out irrelevant rooks
     bitsetCollectorCopy = copy(bitsetCollector)
 
     for i in bitsetCollectorCopy
@@ -312,33 +311,51 @@ function minRooks(p::Poly)
         end
     end
 
-    empty!(bitset)
+    empty!(bitsetMin)
     for i in bitsetCollector
-        push!(bitset, i)
+        push!(bitsetMin, i)
     end
 
-    max, maxSetup = maxRooks(p)  # the paper proves maxRooks/2 <= minRooks <= maxRooks
+
+    forcedPlacement = Set{Array{Pair{Int64, Int64}}}()  # find list of all rook placements forced by arms of the polyomino
+    for i in p.tiles
+        options = optionsRook(p, i.first, i.second)
+        push!(forcedPlacement, options)
+    end
+    delete!(forcedPlacement, Pair{Int64, Int64}[])
 
     guarded = (1 << length(p.tiles)) - 1
-    for i = ceil(Int, max / 2) : max - 1
-        for j in combinations(bitset, i)  # loop trough all possibilities to place i rooks
-            sum = 0
-            for h in j  # collect all tiles that are guarded by current rook placement
-                sum |= h
+    t = 1
+    while true
+        for setup in Iterators.product(forcedPlacement...)
+            sumPre = 0
+
+            rooksCol = Set{Pair{Int64, Int64}}(setup)
+            for i in rooksCol
+                sumPre |= bitset[tileId[i]]
             end
 
-            if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
-                rooks = Pair{Int64, Int64}[]
-                for h in j
-                    push!(rooks, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+            for i in combinations(bitsetMin, t - length(rooksCol))  # loop trough all possibilities to place the rest of the rooks
+                sum = sumPre
+                for h in i  # collect all tiles that are guarded by current rook placement
+                    sum |= h
                 end
 
-                return i, rooks
+                if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
+                    rooks = Pair{Int64, Int64}[]
+                    for h in i
+                        push!(rooks, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+                    end
+                    for h in rooksCol
+                        push!(rooks, h)
+                    end
+
+                    return t, rooks
+                end
             end
         end
+        t += 1
     end
-
-    return max, maxSetup
 end
 
 
@@ -346,15 +363,15 @@ end
 Minimal Number of Guarding Non-Attacking Queens
  - NP complete problem
  - Check solutions encoded as bitset
- - Runtime size * 2^size, try big polyominos with caution
- - Recommendations: Eden Model (<= 80), Shuffeling p = 0.6 (<= 60)
+ - Worst case runtime size * 2^size, try big polyominos with caution
 """
+
 function minQueens(p::Poly)
     if (length(p.tiles) > 127)
         error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
     end
 
-    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate queens
+    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate tiles
     tileIdRev = Pair{Int128, Int128}[]
     t = 1
     for i in p.tiles
@@ -417,9 +434,9 @@ function minQueens(p::Poly)
         t += 1
     end
 
-    bitset = unique(bitset)  # reduce symmetrical queens
+    bitsetMin = unique(bitset)  # reduce symmetrical queens
 
-    bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant queens
+    bitsetCollector = Set{Int64}(bitsetMin)  # filter out irrelevant queens
     bitsetCollectorCopy = copy(bitsetCollector)
 
     for i in bitsetCollectorCopy
@@ -432,31 +449,51 @@ function minQueens(p::Poly)
         end
     end
 
-    empty!(bitset)
+    empty!(bitsetMin)
     for i in bitsetCollector
-        push!(bitset, i)
+        push!(bitsetMin, i)
     end
+
+    forcedPlacement = Set{Array{Pair{Int64, Int64}}}()  # find list of all queen placements forced by arms of the polyomino
+    for i in p.tiles
+        options = optionsQueen(p, i.first, i.second)
+        push!(forcedPlacement, options)
+    end
+    delete!(forcedPlacement, Pair{Int64, Int64}[])
 
     guarded = (1 << length(p.tiles)) - 1
-    for i = 1 : length(p.tiles)
-        for j in combinations(bitset, i)  # loop trough all possibilities to place i queens
-            sum = 0
-            for h in j  # collect all tiles that are guarded by current queen placement
-                sum |= h
+    t = 1
+    while true
+        for setup in Iterators.product(forcedPlacement...)
+            sumPre = 0
+
+            queensCol = Set{Pair{Int64, Int64}}(setup)
+            for i in queensCol
+                sumPre |= bitset[tileId[i]]
             end
 
-            if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
-                queens = Pair{Int64, Int64}[]
-                for h in j
-                    push!(queens, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+            for i in combinations(bitsetMin, t - length(queensCol))  # loop trough all possibilities to place the rest of the rooks
+                sum = sumPre
+                for h in i  # collect all tiles that are guarded by current rook placement
+                    sum |= h
                 end
 
-                return i, queens
+                if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
+                    queens = Pair{Int64, Int64}[]
+                    for h in i
+                        push!(queens, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+                    end
+                    for h in queensCol
+                        push!(queens, h)
+                    end
+
+                    return t, queens
+                end
             end
         end
+        t += 1
     end
 end
-
 
 """
 Convert to Minimal Line Cover (MLC)
@@ -760,11 +797,11 @@ end
 
 
 """
-Format Polyomino for the game
+Format polyomino for the game
 - Verify Polyomino fits in 32 x 18 grid
 - Translate to (0, 0) as (minX, minY)
 """
-function formatPoly(p::Poly)
+function formatPoly!(p::Poly)
     minX, maxX, minY, maxY =  dimensionPoly(p)
 
     tiles = copy(p.tiles)
@@ -778,9 +815,9 @@ end
 
 
 """
-Remove Tiles guarded by rook on selected position
+Remove tiles guarded by rook on selected position
 """
-function placeRook(p::Poly, x::Int64, y::Int64)
+function placeRook!(p::Poly, x::Int64, y::Int64)
     delete!(p.tiles, Pair(x, y))
 
     t = 1  # up
@@ -807,9 +844,9 @@ end
 
 
 """
-Remove Tiles guarded by queen on selected position
+Remove tiles guarded by queen on selected position
 """
-function placeQueen(p::Poly, x::Int64, y::Int64)
+function placeQueen!(p::Poly, x::Int64, y::Int64)
     delete!(p.tiles, Pair(x, y))
 
     t = 1  # up
@@ -856,8 +893,144 @@ end
 
 
 """
+Generate polyominoes for the game
+"""
+function generateGamePoly(size::Int64, p::Float64, shuffling::Bool, number::Int64)
+    completed = 0
+    while (completed < number)
+        polyomino = Poly(size, p, shuffling)
+        minQ = minQueens(polyomino)[1]
+        minR = minRooks(polyomino)[1]
+
+        minX, maxX, minY, maxY =  dimensionPoly(polyomino)
+        board = ""
+        if ((maxX - minX < 17) && (maxY - minY < 31))
+            completed += 1
+
+            for i in floor((minX + maxX) / 2) - 8 : floor((minX + maxX) / 2) + 9
+                for j in floor((minY + maxY) / 2) - 15 : floor((minY + maxY) / 2) + 16
+                    board *= string(Int((Pair(i, j) in polyomino.tiles)))
+                end
+            end
+
+            board = string(minQ) * ", " * string(minR) * ", " * board * "\n"
+            open("polyomino.txt", "a") do file
+                write(file, board)
+            end
+        end
+    end
+end
+
+
+"""
 << Help functions >>
 """
+
+
+"""
+Polyomino pattern forces rook
+"""
+@inline function optionsRook(p::Poly, x::Int64, y::Int64)
+    options = Pair{Int64, Int64}[]
+
+    rev = false
+    if (Pair(x, y) in p.tiles)
+        if ((Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles))
+            t = 1
+            while (Pair(x - t, y) in p.tiles)
+                if (Pair(x - t, y - 1) in p.tiles) || (Pair(x - t, y + 1) in p.tiles)
+                    push!(options, Pair(x - t, y))
+                end
+                t += 1
+            end
+            rev = true
+        elseif (!(Pair(x - 1, y) in p.tiles) && (Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles))
+            t = 1
+            while (Pair(x, y - t) in p.tiles)
+                if (Pair(x - 1, y - t) in p.tiles) || (Pair(x + 1, y - t) in p.tiles)
+                    push!(options, Pair(x, y - t))
+                end
+                t += 1
+            end
+            rev = true
+        elseif (!(Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && (Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles))
+            t = 1
+            while (Pair(x + t, y) in p.tiles)
+                if (Pair(x + t, y - 1) in p.tiles) || (Pair(x + t, y + 1) in p.tiles)
+                    push!(options, Pair(x + t, y))
+                end
+                t += 1
+            end
+        elseif (!(Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && (Pair(x, y + 1) in p.tiles))
+            t = 1
+            while (Pair(x, y + t) in p.tiles)
+                if (Pair(x - 1, y + t) in p.tiles) || (Pair(x + 1, y + t) in p.tiles)
+                    push!(options, Pair(x, y + t))
+                end
+                t += 1
+            end
+        end
+    end
+
+    if (rev)
+        reverse!(options)
+    end
+
+    return options
+end
+
+
+"""
+Polyomino pattern forces queen
+"""
+@inline function optionsQueen(p::Poly, x::Int64, y::Int64)
+    options = Pair{Int64, Int64}[]
+
+    rev = false
+    if (Pair(x, y) in p.tiles)
+        if ((Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles) && !(Pair(x - 1, y + 1) in p.tiles) && !(Pair(x - 1, y - 1) in p.tiles))
+            t = 1
+            while (Pair(x - t, y) in p.tiles)
+                if (Pair(x - t, y - 1) in p.tiles) || (Pair(x - t, y + 1) in p.tiles) || (Pair(x - t - 1, y - 1) in p.tiles) || (Pair(x - t - 1, y + 1) in p.tiles) || (Pair(x - t + 1, y - 1) in p.tiles) || (Pair(x - t + 1, y + 1) in p.tiles)
+                    push!(options, Pair(x - t, y))
+                end
+                t += 1
+            end
+            rev = true
+        elseif (!(Pair(x - 1, y) in p.tiles) && (Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles) && !(Pair(x + 1, y - 1) in p.tiles) && !(Pair(x - 1, y - 1) in p.tiles))
+            t = 1
+            while (Pair(x, y - t) in p.tiles)
+                if (Pair(x - 1, y - t) in p.tiles) || (Pair(x + 1, y - t) in p.tiles) || (Pair(x - 1, y - t - 1) in p.tiles) || (Pair(x + 1, y - t - 1) in p.tiles) || (Pair(x - 1, y - t + 1) in p.tiles) || (Pair(x + 1, y - t + 1) in p.tiles)
+                    push!(options, Pair(x, y - t))
+                end
+                t += 1
+            end
+            rev = true
+        elseif (!(Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && (Pair(x + 1, y) in p.tiles) && !(Pair(x, y + 1) in p.tiles) && !(Pair(x + 1, y + 1) in p.tiles) && !(Pair(x + 1, y - 1) in p.tiles))
+            t = 1
+            while (Pair(x + t, y) in p.tiles)
+                if (Pair(x + t, y - 1) in p.tiles) || (Pair(x + t, y + 1) in p.tiles) || (Pair(x + t - 1, y - 1) in p.tiles) || (Pair(x + t - 1, y + 1) in p.tiles) || (Pair(x + t + 1, y - 1) in p.tiles) || (Pair(x + t + 1, y + 1) in p.tiles)
+                    push!(options, Pair(x + t, y))
+                end
+                t += 1
+            end
+        elseif (!(Pair(x - 1, y) in p.tiles) && !(Pair(x, y - 1) in p.tiles) && !(Pair(x + 1, y) in p.tiles) && (Pair(x, y + 1) in p.tiles) && !(Pair(x + 1, y + 1) in p.tiles) && !(Pair(x - 1, y + 1) in p.tiles))
+            t = 1
+            while (Pair(x, y + t) in p.tiles)
+                if (Pair(x - 1, y + t) in p.tiles) || (Pair(x + 1, y + t) in p.tiles) || (Pair(x - 1, y + t - 1) in p.tiles) || (Pair(x + 1, y + t - 1) in p.tiles) || (Pair(x - 1, y + t + 1) in p.tiles) || (Pair(x + 1, y + t + 1) in p.tiles)
+                    push!(options, Pair(x, y + t))
+                end
+                t += 1
+            end
+        end
+    end
+
+    if (rev)
+        reverse!(options)
+    end
+
+    return options
+end
 
 
 """
