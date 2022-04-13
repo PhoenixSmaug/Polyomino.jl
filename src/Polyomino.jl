@@ -1085,4 +1085,125 @@ Breadth first search
     return false
 end
 
+"""
+<< Help functions >>
+"""
+
+"""
+Alternative Min Rook algorithm, performes slightly worse for interesting polyominoes
+"""
+function minRooksAlt(p::Poly)
+    if (length(p.tiles) > 127)
+        error("Polyomino with size " * string(length(p.tiles)) * " too big to analyze.")
+    end
+
+    tileId = Dict{Pair{Int128, Int128}, Int128}()  # enumerate tiles
+    tileIdRev = Pair{Int128, Int128}[]
+    t = 1
+    for i in p.tiles
+        tileId[i] = t
+        push!(tileIdRev, i)
+        t += 1
+    end
+
+    # convert situation to bitset with Int128, if tile with tileId idB can be attacked from idA, turn (idB - 1) bit on
+    bitset = fill(0, length(p.tiles))
+    for (key, value) in tileId
+        bitset[value] = bitset[value] | (1 << (value - 1))
+
+        t = 1
+        while (Pair(key.first - t, key.second) in p.tiles)  # up
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first - t, key.second)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first, key.second - t) in p.tiles)  # left
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second - t)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first + t, key.second) in p.tiles)  # down
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first + t, key.second)] - 1))
+            t += 1
+        end
+        t = 1
+        while (Pair(key.first, key.second + t) in p.tiles)  # right
+            bitset[value] = bitset[value] | (1 << (tileId[Pair(key.first, key.second + t)] - 1))
+            t += 1
+        end
+    end
+
+    bitsetOrder = Dict{Int128, Int128}()
+    t = 1  # remember which bitset is which tile
+    for i in bitset
+        bitsetOrder[i] = t
+        t += 1
+    end
+
+
+    forcedPlacement = Set{Array{Pair{Int64, Int64}}}()  # find list of all rook placements forced by arms of the polyomino
+    for i in p.tiles
+        options = optionsRook(p, i.first, i.second)
+        push!(forcedPlacement, options)
+    end
+    delete!(forcedPlacement, Pair{Int64, Int64}[])
+
+    guarded = (1 << length(p.tiles)) - 1
+    t = 1; bitsetMin = Vector{Int64}()
+    while true
+        for setup in Iterators.product(forcedPlacement...)
+            sumPre = 0
+
+            rooksCol = Set{Pair{Int64, Int64}}(setup)
+            for i in rooksCol
+                sumPre |= bitset[tileId[i]]
+            end
+            
+            bitsetCollector = Set{Int64}(bitset)  # filter out irrelevant rooks
+            for i in bitset
+                for j in bitset
+                    if (i != j && j in bitsetCollector)
+                        if (sumPre | j == sumPre | j | i)
+                            delete!(bitsetCollector, i)  # if another tile guards at least every tile the first tile guards
+                        end
+                    end
+                end
+            end
+
+            empty!(bitsetMin)
+            for i in bitsetCollector
+                push!(bitsetMin, i)
+            end
+
+            if (sumPre == guarded)  # if sum is "1111...111", so all tiles are guarded
+                rooks = Pair{Int64, Int64}[]
+                for h in rooksCol
+                    push!(rooks, h)
+                end
+                return t, rooks
+            end
+
+            for i in combinations(bitsetMin, t - length(rooksCol))  # loop trough all possibilities to place the rest of the rooks
+                sum = sumPre
+                for h in i  # collect all tiles that are guarded by current rook placement
+                    sum |= h
+                end
+
+                if (sum == guarded)  # if sum is "1111...111", so all tiles are guarded
+                    rooks = Pair{Int64, Int64}[]
+                    for h in i
+                        push!(rooks, tileIdRev[bitsetOrder[h]])  # retranslate bitset to original tile
+                    end
+                    for h in rooksCol
+                        push!(rooks, h)
+                    end
+
+                    return t, rooks
+                end
+            end
+        end
+        t += 1
+    end
+end
+
 end #module
