@@ -1054,6 +1054,14 @@ end
 Breadth first search
 """
 @inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
+    if (abs(start.first - goal.first) == 1 && abs(start.second - goal.second) == 1)  # corner
+        if Pair(start.first, goal.second) in tiles
+            return true
+        elseif Pair(goal.first, start.second) in tiles
+            return true
+        end
+    end
+
     q = Queue{Pair{Int64, Int64}}()
     done = Set{Pair{Int64, Int64}}()
     enqueue!(q, start); push!(done, start)
