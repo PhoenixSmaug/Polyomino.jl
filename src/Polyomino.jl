@@ -136,6 +136,7 @@ Breadth first search
     return false
 end
 
+                    
 @inline function shuffle(tiles::Set{Pair{Int64, Int64}}, neighbours::Set{Pair{Int64, Int64}}, p::Float64)
     diff = 0
 
