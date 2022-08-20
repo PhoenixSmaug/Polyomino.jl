@@ -3,6 +3,8 @@ module Polyomino
 using DataStructures
 using MatrixNetworks
 using Combinatorics
+using JuMP
+using HiGHS
 
 struct Poly
     tiles::Set{Pair{Int64, Int64}}
@@ -12,6 +14,7 @@ include("max-rooks.jl")
 include("min-rooks.jl")
 include("min-queens.jl")
 include("min-line-cover.jl")
+include("integer-optimization.jl")
 
 """
 Polyomino generation - Shuffling
