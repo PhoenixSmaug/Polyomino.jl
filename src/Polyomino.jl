@@ -2,7 +2,6 @@ module Polyomino
 
 using DataStructures
 using MatrixNetworks
-using Combinatorics
 using JuMP
 using HiGHS
 
@@ -10,16 +9,70 @@ struct Poly
     tiles::Set{Pair{Int64, Int64}}
 end
 
-include("max-rooks.jl")
-include("min-rooks.jl")
-include("min-queens.jl")
+include("algorithms.jl")
 include("min-line-cover.jl")
-include("integer-optimization.jl")
+
+Base.show(io::IO, x::Poly) = begin
+    minX, maxX, minY, maxY = dimensionPoly(x)
+
+    for i in minX:maxX
+        for j in minY:maxY
+            (Pair(i, j) in x.tiles) ? print(io, "*") : print(io, " ")
+        end
+        println()
+    end
+end
+
+@inline function dimensionPoly(p::Poly)
+    minX = typemax(Int64); minY = typemax(Int64);
+    maxX = typemin(Int64); maxY = typemin(Int64);
+    for i in p.tiles
+        maxX = (i.first > maxX) ? i.first : maxX
+        maxY = (i.second > maxY) ? i.second : maxY
+        minX = (i.first < minX) ? i.first : minX
+        minY = (i.second < minY) ? i.second : minY
+    end
+
+    return minX, maxX, minY, maxY
+end
+
+
+function demo()
+    println("<Polyomino Generation (n = 30)>")
+
+    println("Shuffling (p = 0):")
+    show(Poly(30, 0.0))
+
+    println("Shuffling (p = 0.8):")
+    show(Poly(30, 0.8))
+
+    println("Eden Model:")
+    show(Poly(30))
+
+    println("<Polyomino Analysis (n = 100)>")
+    poly = Poly(100)
+
+    println("Maximal Rook Setup:")
+    printSet(poly, maxRooks(poly)[2])
+
+    println("Maximal Queen Setup:")
+    printSet(poly, maxQueens(poly)[2])
+
+    println("Minimal Rook Setup:")
+    printSet(poly, minRooks(poly)[2])
+
+    println("Minimal Queen Setup:")
+    printSet(poly, minQueens(poly)[2])
+
+    println("Minimal Line Cover:")
+    printMinLineCover(poly)
+end
+
 
 """
 Polyomino generation - Shuffling
  - Shuffling algorithm for uniformly distributed polyominoes after size^3 successful shuffles
- - Probability p with perculation model, higher p creates more compact polyominoes
+ - Probability p with perculation model, higher p results in more compact polyominoes
  - Verify polyomino stays connected after shuffle with breath first search
 """
 function Poly(size::Int64, p::Float64)
@@ -42,113 +95,15 @@ function Poly(size::Int64, p::Float64)
 end
 
 
-"""
-Polyomino generation - Eden model
-"""
-function Poly(size::Int64)
-    tiles = Set{Pair{Int64, Int64}}([0 => 0])
-    neighbours = Set{Pair{Int64, Int64}}([-1 => 0, 0 => -1, 1 => 0, 0 => 1])
-
-    for i in 1 : size - 1
-        ranElem = rand(neighbours)  # choose random element from set
-        push!(tiles, ranElem)
-        delete!(neighbours, ranElem)
-
-        !(Pair(ranElem.first - 1, ranElem.second) in tiles) && push!(neighbours, Pair(ranElem.first - 1, ranElem.second))  # update neighbours set
-        !(Pair(ranElem.first, ranElem.second - 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second - 1))
-        !(Pair(ranElem.first + 1, ranElem.second) in tiles) && push!(neighbours, Pair(ranElem.first + 1, ranElem.second))
-        !(Pair(ranElem.first, ranElem.second + 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second + 1))
-    end
-
-    Poly(tiles)
-end
-
-
-"""
-Pretty print polyomino
-"""
-Base.show(io::IO, x::Poly) = begin
-    minX, maxX, minY, maxY =  dimensionPoly(x)
-
-    for i in minX:maxX
-        for j in minY:maxY
-            (Pair(i, j) in x.tiles) ? print(io, "*") : print(io, " ")
-        end
-        println()
-    end
-end
-
-
-"""
-Polyomino dimensions
-"""
-@inline function dimensionPoly(p::Poly)
-    minX = typemax(Int64); minY = typemax(Int64);
-    maxX = typemin(Int64); maxY = typemin(Int64);
-    for i in p.tiles
-        maxX = (i.first > maxX) ? i.first : maxX
-        maxY = (i.second > maxY) ? i.second : maxY
-        minX = (i.first < minX) ? i.first : minX
-        minY = (i.second < minY) ? i.second : minY
-    end
-
-    return minX, maxX, minY, maxY
-end
-
-
-"""
-Breadth first search
-"""
-@inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
-    if (abs(start.first - goal.first) == 1 && abs(start.second - goal.second) == 1)  # corner
-        if Pair(start.first, goal.second) in tiles
-            return true
-        elseif Pair(goal.first, start.second) in tiles
-            return true
-        end
-    end
-
-    q = Queue{Pair{Int64, Int64}}()
-    done = Set{Pair{Int64, Int64}}()
-    enqueue!(q, start); push!(done, start)
-
-    while (!isempty(q))
-        tile = dequeue!(q)
-        if (tile == goal)
-            return true
-        end
-
-        if ((Pair(tile.first - 1, tile.second) in tiles) && !(Pair(tile.first - 1, tile.second) in done))  # above
-            enqueue!(q, Pair(tile.first - 1, tile.second))
-            push!(done, Pair(tile.first - 1, tile.second))
-        end
-        if ((Pair(tile.first, tile.second - 1) in tiles) && !(Pair(tile.first, tile.second - 1) in done))  # left
-            enqueue!(q, Pair(tile.first, tile.second - 1))
-            push!(done, Pair(tile.first, tile.second - 1))
-        end
-        if ((Pair(tile.first + 1, tile.second) in tiles) && !(Pair(tile.first + 1, tile.second) in done))  # below
-            enqueue!(q, Pair(tile.first + 1, tile.second))
-            push!(done, Pair(tile.first + 1, tile.second))
-        end
-        if ((Pair(tile.first, tile.second + 1) in tiles) && !(Pair(tile.first, tile.second + 1) in done))  # right
-            enqueue!(q, Pair(tile.first, tile.second + 1))
-            push!(done, Pair(tile.first, tile.second + 1))
-        end
-    end
-
-    return false
-end
-
-                    
 @inline function shuffle(tiles::Set{Pair{Int64, Int64}}, neighbours::Set{Pair{Int64, Int64}}, p::Float64)
-    diff = 0
+    diff = 0  # circumfrence difference
 
     ranTile = rand(tiles)  # move random tile to new position
     ranNeigh = rand(neighbours)
     delete!(tiles, ranTile)
     push!(tiles, ranNeigh)
 
-    toCheck = Pair{Int64, Int64}[]  # collect tiles to check connectivity
+    toCheck = Pair{Int64, Int64}[]  # collect neighbours to check connectivity
     if ((Pair(ranTile.first - 1, ranTile.second) in tiles))
         push!(toCheck, Pair(ranTile.first - 1, ranTile.second))
         diff += 1
@@ -233,30 +188,67 @@ end
     return false
 end
 
+@inline function bfs(tiles::Set{Pair{Int64, Int64}}, start::Pair{Int64, Int64}, goal::Pair{Int64, Int64})
+    if (abs(start.first - goal.first) == 1 && abs(start.second - goal.second) == 1)  # start and goal directly connect via corner
+        if Pair(start.first, goal.second) in tiles
+            return true
+        elseif Pair(goal.first, start.second) in tiles
+            return true
+        end
+    end
 
-function demo()
-    println("<Polyomino Generation (n = 30)>")
+    q = Queue{Pair{Int64, Int64}}()
+    done = Set{Pair{Int64, Int64}}()
+    enqueue!(q, start); push!(done, start)
 
-    println("Shuffling (p = 0):")
-    show(Poly(30, 0.0))
+    while (!isempty(q))
+        tile = dequeue!(q)
+        if (tile == goal)
+            return true
+        end
 
-    println("Shuffling (p = 0.8):")
-    show(Poly(30, 0.8))
+        if ((Pair(tile.first - 1, tile.second) in tiles) && !(Pair(tile.first - 1, tile.second) in done))  # above
+            enqueue!(q, Pair(tile.first - 1, tile.second))
+            push!(done, Pair(tile.first - 1, tile.second))
+        end
+        if ((Pair(tile.first, tile.second - 1) in tiles) && !(Pair(tile.first, tile.second - 1) in done))  # left
+            enqueue!(q, Pair(tile.first, tile.second - 1))
+            push!(done, Pair(tile.first, tile.second - 1))
+        end
+        if ((Pair(tile.first + 1, tile.second) in tiles) && !(Pair(tile.first + 1, tile.second) in done))  # below
+            enqueue!(q, Pair(tile.first + 1, tile.second))
+            push!(done, Pair(tile.first + 1, tile.second))
+        end
+        if ((Pair(tile.first, tile.second + 1) in tiles) && !(Pair(tile.first, tile.second + 1) in done))  # right
+            enqueue!(q, Pair(tile.first, tile.second + 1))
+            push!(done, Pair(tile.first, tile.second + 1))
+        end
+    end
 
-    println("Eden Model:")
-    show(Poly(30))
-
-    println("<Polyomino Analysis>")
-    polyomino = Poly(30, 0.6)
-
-    println("Minimal Rook Setup:")
-    printMinRooks(polyomino)
-
-    println("Maximal Rook Setup:")
-    printMaxRooks(polyomino)
-
-    println("Minimal Line Cover:")
-    printMinLineCover(polyomino)
+    return false
 end
 
-end #module
+"""
+Polyomino generation - Eden model
+- Start with one tile and iteratively add random neighbour tile
+- Linear runtime, but compact polyominoes with few holes
+"""
+function Poly(size::Int64)
+    tiles = Set{Pair{Int64, Int64}}([0 => 0])
+    neighbours = Set{Pair{Int64, Int64}}([-1 => 0, 0 => -1, 1 => 0, 0 => 1])
+
+    for i in 1 : size - 1
+        ranElem = rand(neighbours)  # choose random element from set
+        push!(tiles, ranElem)
+        delete!(neighbours, ranElem)
+
+        !(Pair(ranElem.first - 1, ranElem.second) in tiles) && push!(neighbours, Pair(ranElem.first - 1, ranElem.second))  # update neighbours set
+        !(Pair(ranElem.first, ranElem.second - 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second - 1))
+        !(Pair(ranElem.first + 1, ranElem.second) in tiles) && push!(neighbours, Pair(ranElem.first + 1, ranElem.second))
+        !(Pair(ranElem.first, ranElem.second + 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second + 1))
+    end
+
+    Poly(tiles)
+end
+
+end # module
