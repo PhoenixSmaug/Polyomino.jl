@@ -1,33 +1,27 @@
 # Polyomino library
 
-A short presentation of all implemented functions is available with calling `demo()`. The details of all algorithms are described in the paper (insert link).
+A short presentation of all implemented functions is available by calling `demo()`.
 
 ## Functions
 
 ### Polyomino generation
 
-Polyominoes can be generated with `Poly(size::Int64, p::Float64, shuffling::Bool)`.
+* `Poly(size::Int64)`: Eden model, O(n)
 
-* `size` is the number of tiles in the polyomino
+* `Poly(size::Int64, p::Float64)`: Shuffling model for uniformly random polyominoes, O(n^3)
 
-* `p` is the perculation paramater choosen between 0 and 1
+### Chess problems
 
-* `shuffling` if the computationally intensive shuffling algorithm should be used for the generation
+* `maxRooks(p::Poly)`: Solves the maximal non-attacking rook set problem, O(n^4)
 
-### Rook setups
+* `maxQueens(p::Poly)`: Solves the maximal non-attacking queen set problem, NP-complete
 
-* `maxRooks(p::Poly)` get number of maximal rooks and their position
+* `minRooks(p::Poly)`: Solves the minimal guarding rook set problem, NP-complete
 
-* `printMaxRooks(p::Poly)` print out maximal rook setup in ASCII art
-
-* `minRooks(p::Poly)` get number of maximal rooks and their position
-
-* `printMinRooks(p::Poly)` print out minimal rook setup in ASCII art
+* `minQueens(p::Poly)`: Solves the minimal guarding queen set problem, NP-complete
 
 ### Polyomino analysis
 
-* `minimalLineCover(p::Poly)` get lines part of a minimal line cover
-
-* `printMinLineCover(p::Poly)` print out minimal line cover in ASCII art
+* `minimalLineCover(p::Poly)`: Calculate minimal line cover
 
 (c) Christoph Muessig
