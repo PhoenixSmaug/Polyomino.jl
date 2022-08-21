@@ -22,6 +22,6 @@ A short presentation of all implemented functions is available by calling `demo(
 
 ### Polyomino analysis
 
-* `minimalLineCover(p::Poly)`: Calculate minimal line cover
+* `minimalLineCover(p::Poly)`: Calculate minimal line cover, O(n^4)
 
 (c) Christoph Muessig
