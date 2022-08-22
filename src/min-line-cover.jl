@@ -1,9 +1,14 @@
 """
-Convert to Minimal Line Cover (MLC)
- - Find maximal rook setup
- - Loop trough rooks, draw vertical and horizontal line through each rook, find polyomino tiles which are only part of one line
- - Add All Lines which have tiles for which they are the only lines to the MLC, Repeat last step
- - If all polyomino tiles are part of two lines, for one random rook add horizontal line to MLC, Repeat until no rooks left
+    minLineCover(p)
+
+Conversion to Minimal Line Cover (MLC)
+
+(I) Find maximal non-attacking rook set and construct vertical and horizontal line through each rook
+(II) If one of the lines of a rook has size 1, add the other to the MLC. Otherwise add random horizontal line to MLC. In both cases delete rook of the line.
+(III) Repeat II until no rooks are left.
+
+# Arguments
+* `p`: Polyomino to be converted
 """
 function minLineCover(p::Poly)
     _, rooksVec = maxRooks(p)
@@ -12,7 +17,7 @@ function minLineCover(p::Poly)
     done = Set{Pair{Int64, Int64}}()
 
     while (!isempty(rooks))
-        tilesOneLine = Set{Pair{Int64, Int64}}()  # find all tiles with only one line through them, step (A)
+        tilesOneLine = Set{Pair{Int64, Int64}}()  # find all tiles where one line has size 1
         for i in rooks
             t = 1
             while (Pair(i.first - t, i.second) in p.tiles)  # up
@@ -170,11 +175,7 @@ function minLineCover(p::Poly)
 end
 
 
-"""
-Pretty Print Minimal Line Cover
- - "-" if tile is part of horizontal line, "|" if tile is part of vertical line, "+" if both
-"""
-function printMinLineCover(p::Poly)
+function printMinLineCover(p::Poly)  # "-" if tile is part of horizontal line, "|" if tile is part of vertical line, "+" if both
     mlc = minLineCover(p)
 
     minX, maxX, minY, maxY =  dimensionPoly(p)
