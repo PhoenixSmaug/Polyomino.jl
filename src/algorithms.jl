@@ -15,9 +15,15 @@ end
 
 
 """
-Maximal non-attacking rook set problem
- - Polynomial runtime as maximal matching in corresponding biparite graph
- - Details in https://link.springer.com/content/pdf/10.1007/s00373-020-02272-8.pdf Chapter 4
+    maxRooks(p)
+
+Solves the maximal non-attacking rook set problem
+
+Polynomial runtime as translation of maximal matching problem in corresponding biparite graph,
+details in https://link.springer.com/content/pdf/10.1007/s00373-020-02272-8.pdf Chapter 4
+
+# Arguments
+* `p`: Polyomino to calculate the rook set on
 """
 function maxRooks(p::Poly)
     minX, maxX, minY, maxY =  dimensionPoly(p)
@@ -79,10 +85,17 @@ end
 
 
 """
-Maximal non-attacking queen set problem
-- NP complete problem, solve as LIP with HiGHS optimizer
+    maxQueens(p)
+
+Solves the maximal non-attacking queen set problem
+
+NP complete problem, solve as LIP with HiGHS optimizer
+
+# Arguments
+* `p`: Polyomino to calculate the queen set on
+* `optimizerOutput`: If logging of HiGHS is enabled
 """
-function maxQueens(p::Poly)
+function maxQueens(p::Poly, optimizerOutput::Bool)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -146,7 +159,7 @@ function maxQueens(p::Poly)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", false)
+    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
         @constraint(model, sum(x[i] for i in tileRow[value]) <= 1)  # one queen per row
@@ -163,10 +176,17 @@ end
 
 
 """
-Minimal guarding rook set problem
-- NP complete problem, solve as LIP with HiGHS optimizer
+    minRooks(p)
+
+Solves the minimal guarding rook set problem
+
+NP complete problem, solve as LIP with HiGHS optimizer
+
+# Arguments
+* `p`: Polyomino to calculate the rook set on
+* `optimizerOutput`: If logging of HiGHS is enabled
 """
-function minRooks(p::Poly)
+function minRooks(p::Poly, optimizerOutput::Bool)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -203,7 +223,7 @@ function minRooks(p::Poly)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", false)
+    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
         @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two rooks attack each other
@@ -217,10 +237,17 @@ end
 
 
 """
-Minimal guarding queen set problem
-- NP complete problem, solve as LIP with HiGHS optimizer
+    minQueens(p)
+
+Solves the minimal guarding queen set problem
+
+NP complete problem, solve as LIP with HiGHS optimizer
+
+# Arguments
+* `p`: Polyomino to calculate the queen set on
+* `optimizerOutput`: If logging of HiGHS is enabled
 """
-function minQueens(p::Poly)
+function minQueens(p::Poly, optimizerOutput::Bool)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -277,7 +304,7 @@ function minQueens(p::Poly)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", false)
+    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
         @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two queens attack each other

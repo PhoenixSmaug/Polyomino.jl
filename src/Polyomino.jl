@@ -56,13 +56,13 @@ function demo()
     printSet(poly, maxRooks(poly)[2])
 
     println("Maximal Queen Setup:")
-    printSet(poly, maxQueens(poly)[2])
+    printSet(poly, maxQueens(poly, false)[2])
 
     println("Minimal Rook Setup:")
-    printSet(poly, minRooks(poly)[2])
+    printSet(poly, minRooks(poly, false)[2])
 
     println("Minimal Queen Setup:")
-    printSet(poly, minQueens(poly)[2])
+    printSet(poly, minQueens(poly, false)[2])
 
     println("Minimal Line Cover:")
     printMinLineCover(poly)
@@ -70,10 +70,15 @@ end
 
 
 """
-Polyomino generation - Shuffling
- - Shuffling algorithm for uniformly distributed polyominoes after size^3 successful shuffles
- - Probability p with perculation model, higher p results in more compact polyominoes
- - Verify polyomino stays connected after shuffle with breath first search
+    Poly(size, p)
+
+Polyomino generation wih shuffling model
+
+Generates uniformly distributed polyominoes after size^3 successful shuffles.
+
+# Arguments
+* `size`: Number of tiles of polyomino
+* `p`: Perculation probability between 0 and 1, higher p results in more compact polyominoes
 """
 function Poly(size::Int64, p::Float64)
     tiles = Set{Pair{Int64, Int64}}()
@@ -228,10 +233,16 @@ end
     return false
 end
 
+
 """
-Polyomino generation - Eden model
-- Start with one tile and iteratively add random neighbour tile
-- Linear runtime, but compact polyominoes with few holes
+    Poly(size)
+
+Polyomino generation wih Eden model
+
+Start with one tile and iteratively add random neighbour tile. Linear runtime, but compact polyominoes with few holes.
+
+# Arguments
+* `size`: Number of tiles of polyomino
 """
 function Poly(size::Int64)
     tiles = Set{Pair{Int64, Int64}}([0 => 0])
