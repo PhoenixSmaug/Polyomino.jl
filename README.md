@@ -1,6 +1,6 @@
 # Polyomino library
 
-A short presentation of all implemented functions is available by calling `demo()`.
+A short presentation of all implemented functions is available by calling `Polyomino.demo()`.
 
 ## Functions
 
