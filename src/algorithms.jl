@@ -226,7 +226,7 @@ function minRooks(p::Poly, optimizerOutput::Bool)
     set_optimizer_attribute(model, "log_to_console", optimizerOutput)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
-        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two rooks attack each other
+        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # the tile is guarded
     end
     @objective(model, Min, sum(x))
 
@@ -307,7 +307,7 @@ function minQueens(p::Poly, optimizerOutput::Bool)
     set_optimizer_attribute(model, "log_to_console", optimizerOutput)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
-        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two queens attack each other
+        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # the tile is guarded
     end
     @objective(model, Min, sum(x))
 

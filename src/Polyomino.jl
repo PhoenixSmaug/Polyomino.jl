@@ -4,6 +4,7 @@ using DataStructures
 using MatrixNetworks
 using JuMP
 using HiGHS
+using ProgressMeter
 
 struct Poly
     tiles::Set{Pair{Int64, Int64}}
@@ -89,23 +90,60 @@ function Poly(size::Int64, p::Float64)
         push!(neighbours, -1 => i)
     end
 
-    shuffles = 0
-    while (shuffles < size ^ 3)
-        if (shuffle(tiles, neighbours, p))
-            shuffles += 1
+    euler = [2 * size + 2, (2 * size + 2) + (size - 1)] # vertices, edges
+
+    @showprogress 1 "Shuffling..." for i in 1 : size^3
+        while (!shuffle(tiles, neighbours, p, euler))
         end
     end
+
+    println(euler[2] - euler[1] - size + 1)  # number of holes with euler characteristic
 
     Poly(tiles)
 end
 
-
-@inline function shuffle(tiles::Set{Pair{Int64, Int64}}, neighbours::Set{Pair{Int64, Int64}}, p::Float64)
+@inline function shuffle(tiles::Set{Pair{Int64, Int64}}, neighbours::Set{Pair{Int64, Int64}}, p::Float64, euler::Vector{Int64})
     diff = 0  # circumfrence difference
+    vertexDiff = 0
+    edgeDiff = 0
 
     ranTile = rand(tiles)  # move random tile to new position
     ranNeigh = rand(neighbours)
     delete!(tiles, ranTile)
+
+    # vertex update from tile remval
+    if !(Pair(ranTile.first - 1, ranTile.second) in tiles) && !(Pair(ranTile.first - 1, ranTile.second - 1) in tiles) && !(Pair(ranTile.first, ranTile.second - 1) in tiles)  # left upper corner
+        vertexDiff -= 1
+    end
+    if !(Pair(ranTile.first, ranTile.second - 1) in tiles) && !(Pair(ranTile.first + 1, ranTile.second - 1) in tiles) && !(Pair(ranTile.first + 1, ranTile.second) in tiles)  # left lower corner
+        vertexDiff -= 1
+    end
+    if !(Pair(ranTile.first + 1, ranTile.second) in tiles) && !(Pair(ranTile.first + 1, ranTile.second + 1) in tiles) && !(Pair(ranTile.first, ranTile.second + 1) in tiles)  # right lower corner
+        vertexDiff -= 1
+    end
+    if !(Pair(ranTile.first, ranTile.second + 1) in tiles) && !(Pair(ranTile.first - 1, ranTile.second + 1) in tiles) && !(Pair(ranTile.first - 1, ranTile.second) in tiles)  # right upper corner
+        vertexDiff -= 1
+    end
+
+    # vertex change from tile addition
+    if !(Pair(ranNeigh.first - 1, ranNeigh.second) in tiles) && !(Pair(ranNeigh.first - 1, ranNeigh.second - 1) in tiles) && !(Pair(ranNeigh.first, ranNeigh.second - 1) in tiles)  # left upper corner
+        vertexDiff += 1
+    end
+    if !(Pair(ranNeigh.first, ranNeigh.second - 1) in tiles) && !(Pair(ranNeigh.first + 1, ranNeigh.second - 1) in tiles) && !(Pair(ranNeigh.first + 1, ranNeigh.second) in tiles)  # left lower corner
+        vertexDiff += 1
+    end
+    if !(Pair(ranNeigh.first + 1, ranNeigh.second) in tiles) && !(Pair(ranNeigh.first + 1, ranNeigh.second + 1) in tiles) && !(Pair(ranNeigh.first, ranNeigh.second + 1) in tiles)  # right lower corner
+        vertexDiff += 1
+    end
+    if !(Pair(ranNeigh.first, ranNeigh.second + 1) in tiles) && !(Pair(ranNeigh.first - 1, ranNeigh.second + 1) in tiles) && !(Pair(ranNeigh.first - 1, ranNeigh.second) in tiles)  # right upper corner
+        vertexDiff += 1
+    end
+
+    #edge change from tile removal
+    edgeDiff -= !(Pair(ranTile.first - 1, ranTile.second) in tiles) + !(Pair(ranTile.first, ranTile.second - 1) in tiles) + !(Pair(ranTile.first + 1, ranTile.second) in tiles) + !(Pair(ranTile.first, ranTile.second + 1) in tiles)
+    #edge change from tile addition
+    edgeDiff += !(Pair(ranNeigh.first - 1, ranNeigh.second) in tiles) + !(Pair(ranNeigh.first, ranNeigh.second - 1) in tiles) + !(Pair(ranNeigh.first + 1, ranNeigh.second) in tiles) + !(Pair(ranNeigh.first, ranNeigh.second + 1) in tiles)
+
     push!(tiles, ranNeigh)
 
     toCheck = Pair{Int64, Int64}[]  # collect neighbours to check connectivity
@@ -149,7 +187,7 @@ end
         end
 
         accepted = true  # accepted shuffle with probability (1 - p)^diff
-        if (p != 0)
+        if !iszero(p)
             accepted = rand() < (1 - p)^diff;
         end
 
@@ -182,6 +220,9 @@ end
             if (!(Pair(ranNeigh.first, ranNeigh.second + 1) in tiles))
                 push!(neighbours, Pair(ranNeigh.first, ranNeigh.second + 1))
             end
+
+            euler[1] += vertexDiff
+            euler[2] += edgeDiff
 
             return true
         end
