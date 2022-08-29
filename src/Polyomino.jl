@@ -8,6 +8,8 @@ using ProgressMeter
 
 struct Poly
     tiles::Set{Pair{Int64, Int64}}
+    vertices::Int64
+    edges::Int64
 end
 
 include("algorithms.jl")
@@ -37,6 +39,9 @@ end
     return minX, maxX, minY, maxY
 end
 
+@inline function holes(p::Poly)
+    return p.edges - p.vertices - length(p.tiles) + 1  # number of holes with euler characteristic
+end
 
 function demo()
     println("<Polyomino Generation (n = 30)>")
@@ -97,9 +102,7 @@ function Poly(size::Int64, p::Float64)
         end
     end
 
-    println(euler[2] - euler[1] - size + 1)  # number of holes with euler characteristic
-
-    Poly(tiles)
+    Poly(tiles, euler[1], euler[2])
 end
 
 @inline function shuffle(tiles::Set{Pair{Int64, Int64}}, neighbours::Set{Pair{Int64, Int64}}, p::Float64, euler::Vector{Int64})
@@ -289,10 +292,30 @@ function Poly(size::Int64)
     tiles = Set{Pair{Int64, Int64}}([0 => 0])
     neighbours = Set{Pair{Int64, Int64}}([-1 => 0, 0 => -1, 1 => 0, 0 => 1])
 
+    vertices = 0
+    edges = 0
+
     for i in 1 : size - 1
         ranElem = rand(neighbours)  # choose random element from set
         push!(tiles, ranElem)
         delete!(neighbours, ranElem)
+
+        # edge update
+        edges += !(Pair(ranElem.first - 1, ranElem.second) in tiles) + !(Pair(ranElem.first, ranElem.second - 1) in tiles) + !(Pair(ranElem.first + 1, ranElem.second) in tiles) + !(Pair(ranElem.first, ranElem.second + 1) in tiles)
+
+        # vertex update
+        if !(Pair(ranElem.first - 1, ranElem.second) in tiles) && !(Pair(ranElem.first - 1, ranElem.second - 1) in tiles) && !(Pair(ranElem.first, ranElem.second - 1) in tiles)  # left upper corner
+            vertices += 1
+        end
+        if !(Pair(ranElem.first, ranElem.second - 1) in tiles) && !(Pair(ranElem.first + 1, ranElem.second - 1) in tiles) && !(Pair(ranElem.first + 1, ranElem.second) in tiles)  # left lower corner
+            vertices += 1
+        end
+        if !(Pair(ranElem.first + 1, ranElem.second) in tiles) && !(Pair(ranElem.first + 1, ranElem.second + 1) in tiles) && !(Pair(ranElem.first, ranElem.second + 1) in tiles)  # right lower corner
+            vertices += 1
+        end
+        if !(Pair(ranElem.first, ranElem.second + 1) in tiles) && !(Pair(ranElem.first - 1, ranElem.second + 1) in tiles) && !(Pair(ranElem.first - 1, ranElem.second) in tiles)  # right upper corner
+            vertices += 1
+        end
 
         !(Pair(ranElem.first - 1, ranElem.second) in tiles) && push!(neighbours, Pair(ranElem.first - 1, ranElem.second))  # update neighbours set
         !(Pair(ranElem.first, ranElem.second - 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second - 1))
@@ -300,7 +323,7 @@ function Poly(size::Int64)
         !(Pair(ranElem.first, ranElem.second + 1) in tiles) && push!(neighbours, Pair(ranElem.first, ranElem.second + 1))
     end
 
-    Poly(tiles)
+    Poly(tiles, vertices, edges)
 end
 
 end # module
