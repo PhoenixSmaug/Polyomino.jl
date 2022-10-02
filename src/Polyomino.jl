@@ -62,13 +62,13 @@ function demo()
     printSet(poly, maxRooks(poly)[2])
 
     println("Maximal Queen Setup:")
-    printSet(poly, maxQueens(poly, false)[2])
+    printSet(poly, maxQueens(poly, output=false)[2])
 
     println("Minimal Rook Setup:")
-    printSet(poly, minRooks(poly, false)[2])
+    printSet(poly, minRooks(poly, output=false)[2])
 
     println("Minimal Queen Setup:")
-    printSet(poly, minQueens(poly, false)[2])
+    printSet(poly, minQueens(poly; output=false)[2])
 
     println("Minimal Line Cover:")
     printMinLineCover(poly)
