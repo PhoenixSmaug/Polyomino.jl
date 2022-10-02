@@ -93,9 +93,9 @@ NP complete problem, solve as LIP with HiGHS optimizer
 
 # Arguments
 * `p`: Polyomino to calculate the queen set on
-* `optimizerOutput`: If logging of HiGHS is enabled
+* `output`: If logging of HiGHS is enabled
 """
-function maxQueens(p::Poly, optimizerOutput::Bool)
+function maxQueens(p::Poly; output=true)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -159,7 +159,7 @@ function maxQueens(p::Poly, optimizerOutput::Bool)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
+    set_optimizer_attribute(model, "log_to_console", output)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
         @constraint(model, sum(x[i] for i in tileRow[value]) <= 1)  # one queen per row
@@ -184,9 +184,9 @@ NP complete problem, solve as LIP with HiGHS optimizer
 
 # Arguments
 * `p`: Polyomino to calculate the rook set on
-* `optimizerOutput`: If logging of HiGHS is enabled
+* `output`: If logging of HiGHS is enabled
 """
-function minRooks(p::Poly, optimizerOutput::Bool)
+function minRooks(p::Poly; output=true)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -223,10 +223,10 @@ function minRooks(p::Poly, optimizerOutput::Bool)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
+    set_optimizer_attribute(model, "log_to_console", output)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
-        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two rooks attack each other
+        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # the tile is guarded
     end
     @objective(model, Min, sum(x))
 
@@ -245,9 +245,9 @@ NP complete problem, solve as LIP with HiGHS optimizer
 
 # Arguments
 * `p`: Polyomino to calculate the queen set on
-* `optimizerOutput`: If logging of HiGHS is enabled
+* `output`: If logging of HiGHS is enabled
 """
-function minQueens(p::Poly, optimizerOutput::Bool)
+function minQueens(p::Poly; output=true)
     tileId = Dict{Pair{Int64, Int64}, Int64}()  # enumerate tiles
     tileIdRev = Pair{Int64, Int64}[]
     t = 1
@@ -304,10 +304,10 @@ function minQueens(p::Poly, optimizerOutput::Bool)
     end
 
     model = Model(HiGHS.Optimizer)  # construct linear integer programm
-    set_optimizer_attribute(model, "log_to_console", optimizerOutput)
+    set_optimizer_attribute(model, "log_to_console", output)
     @variable(model, x[1 : length(p.tiles)], Bin)
     for (key, value) in tileId
-        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # no two queens attack each other
+        @constraint(model, sum(x[i] for i in tileAttack[value]) >= 1)  # the tile is guarded
     end
     @objective(model, Min, sum(x))
 
