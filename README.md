@@ -1,3 +1,17 @@
+DEVELOPERS:
+
+Alexis Langlois-Rémillard ()
+
+Christoph Müßig () 
+
+Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
+
+
+
+DATE: October 8th, 2022
+
+LICENSE: GNU GENERAL PUBLIC LICENSE (see license.txt)
+
 # Polyomino library
 
 A short presentation of all implemented functions is available by calling `Polyomino.demo()`.
@@ -24,4 +38,4 @@ A short presentation of all implemented functions is available by calling `Polyo
 
 * `minimalLineCover(p::Poly)`: Calculate minimal line cover, O(n^4)
 
-(c) Christoph Muessig
+
