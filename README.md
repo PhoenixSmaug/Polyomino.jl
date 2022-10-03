@@ -1,30 +1,15 @@
-## DEVELOPERS:
+# Polyomino library
 
-Alexis Langlois-Rémillard ()
+### Authors
+* Alexis Langlois-Rémillard ()
+* Christoph Müßig () 
+* Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
 
-Christoph Müßig () 
-
-Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
-
-DATE: October 8th, 2022
-
-LICENSE: GNU GENERAL PUBLIC LICENSE (see license.txt)
+---
 
 ## Overview
 
-
-Acknowledgements
-Erika Roldan received funding from the European Union’s Horizon 2020 research and innovation program under the Marie Skłodowska-Curie grant agreement No. 754462.
-
-## Citations
-You are welcome to use and adapt this code for your own projects. If you use this code, please cite the paper .
-
-
-# Polyomino library
-
 A short presentation of all implemented functions is available by calling `Polyomino.demo()`.
-
-## Functions
 
 ### Polyomino generation
 
@@ -46,4 +31,11 @@ A short presentation of all implemented functions is available by calling `Polyo
 
 * `minimalLineCover(p::Poly)`: Calculate minimal line cover, O(n^4)
 
+---
 
+### Acknowledgements
+
+Erika Roldan received funding from the European Union’s Horizon 2020 research and innovation program under the Marie Skłodowska-Curie grant agreement No. 754462.
+
+### License
+This project is licensed under the MIT License - see LICENSE file for details. If you use this code for academic purposes, please cite the paper [to add].
