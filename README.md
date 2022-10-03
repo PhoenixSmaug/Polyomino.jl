@@ -6,6 +6,10 @@ Christoph Müßig ()
 
 Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
 
+DATE: October 8th, 2022
+
+LICENSE: GNU GENERAL PUBLIC LICENSE (see license.txt)
+
 ##Overview
 
 
@@ -13,12 +17,8 @@ Acknowledgements
 Erika Roldan received funding from the European Union’s Horizon 2020 research and innovation program under the Marie Skłodowska-Curie grant agreement No. 754462.
 
 Citations
-You are welcome to use and adapt this code for your own projects. If you use this code, please cite the paper PARITY PROPERTY OF HEXAGONAL SLIDING PUZZLES.
+You are welcome to use and adapt this code for your own projects. If you use this code, please cite the paper .
 
-
-DATE: October 8th, 2022
-
-LICENSE: GNU GENERAL PUBLIC LICENSE (see license.txt)
 
 # Polyomino library
 
