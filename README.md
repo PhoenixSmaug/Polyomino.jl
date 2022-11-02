@@ -1,4 +1,4 @@
-# Polyomino library
+# Complexity of Chess Domination Problems, library
 
 ### Authors
 * Alexis Langlois-Rémillard (alexislangloisremillard@gmail.com) https://alexisl-r.github.io/
