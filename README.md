@@ -1,8 +1,8 @@
 # Polyomino library
 
 ### Authors
-* Alexis Langlois-Rémillard ()
-* Christoph Müßig () 
+* Alexis Langlois-Rémillard (alexislangloisremillard@gmail.com) https://alexisl-r.github.io/
+* Christoph Müßig (info@cmuessig.de)
 * Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
 
 ---
