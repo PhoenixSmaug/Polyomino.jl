@@ -1,7 +1,7 @@
 name = "Polyomino"
 uuid = "4937893a-a78f-43c0-9d0a-2f4d4786e0cf"
 authors = ["PhoenixSmaug <account.it.github@cmuessig.de>"]
-version = "1.0.0"
+version = "1.1.0"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
