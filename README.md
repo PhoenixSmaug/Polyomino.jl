@@ -38,4 +38,6 @@ A short presentation of all implemented functions is available by calling `Polyo
 Erika Roldan received funding from the European Union’s Horizon 2020 research and innovation program under the Marie Skłodowska-Curie grant agreement No. 754462.
 
 ### License
-This project is licensed under the MIT License - see LICENSE file for details. If you use this code for academic purposes, please cite the paper [to add].
+This project is licensed under the MIT License - see LICENSE file for details. If you use this code for academic purposes, please cite the paper: 
+
+Alexis Langlois-Rémillard, Christoph Müßig, and Érika Róldan, Complexity of Chess Domination Problems, https://arxiv.org/abs/2211.05651 [math.CO], 2022.
