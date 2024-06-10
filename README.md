@@ -2,7 +2,7 @@
 
 ### Authors
 * Alexis Langlois-Rémillard (alexislangloisremillard@gmail.com) https://alexisl-r.github.io/
-* Christoph Müßig (info@cmuessig.de)
+* Mia Müßig (nienna@miamuessig.de)
 * Erika Roldan (erika.roldan@ma.tum.de) https://www.erikaroldan.net/
 
 ---
