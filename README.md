@@ -40,4 +40,4 @@ Erika Roldan received funding from the European Union’s Horizon 2020 research 
 ### License
 This project is licensed under the MIT License - see LICENSE file for details. If you use this code for academic purposes, please cite the paper: 
 
-Alexis Langlois-Rémillard, Christoph Müßig, and Érika Róldan, Complexity of Chess Domination Problems, https://arxiv.org/abs/2211.05651 [math.CO], 2022.
+Alexis Langlois-Rémillard, Mia Müßig, and Érika Róldan, Complexity of Chess Domination Problems, https://arxiv.org/abs/2211.05651 [math.CO], 2022.
